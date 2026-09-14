@@ -1,0 +1,30 @@
+# 依存パッケージ
+node_modules/
+
+# 環境変数(実値は絶対にコミットしない)
+.env
+.env.local
+.env.*.local
+
+# ビルド成果物
+dist/
+build/
+.next/
+out/
+
+# アップロードファイル(開発中のローカルデータ)
+backend/uploads/*
+!backend/uploads/avatars/.gitkeep
+!backend/uploads/.gitkeep
+
+# Prisma
+backend/prisma/migrations/dev.db
+
+# ログ
+*.log
+npm-debug.log*
+
+# OS/エディタ
+.DS_Store
+.vscode/
+.idea/

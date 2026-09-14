@@ -1,0 +1,107 @@
+// ------------------------------------------------------------
+// Prisma Schema - ライブ配信プラットフォーム(再設計版)
+//
+// 旧実装からの主な変更点:
+// - Stream.isLive(数値 0/1/2、ソースにより意味が逆転していた)を廃止し、
+//   StreamStatus enum(SCHEDULED / LIVE / ENDED)に統一
+// - Stream.source enumを新設し、INTERNAL / YOUTUBE を明示的に区別
+// - YouTube動画は externalId(videoId)で一意に管理し、内部配信とテーブルを共有
+// ------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------
+
+/// 配信の状態。旧実装の数値isLiveを置き換える。
+enum StreamStatus {
+  SCHEDULED // 配信予定(YouTubeの予定配信のみ想定)
+  LIVE // 配信中
+  ENDED // 終了 / 未配信(内部配信の作成直後もこちらに含める)
+}
+
+/// 配信の提供元
+enum StreamSource {
+  INTERNAL // 自サービス内でのWebRTC配信
+  YOUTUBE // YouTube連携配信
+}
+
+// ------------------------------------------------------------
+// Models
+// ------------------------------------------------------------
+
+model User {
+  id   Int    @id @default(autoincrement())
+  name String // 表示名(チャンネル運営者名など、変更可能)
+
+  /// ログインID兼表示用の一意なハンドル(email/usernameいずれでもログイン可能にする)
+  username String @unique
+  email    String @unique
+
+  passwordHash String
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  channel Channel? // 1ユーザー1チャンネル
+  streams Stream[] // 自分が作成した配信(INTERNAL)
+
+  @@map("users")
+}
+
+model Channel {
+  id        Int      @id @default(autoincrement())
+  name      String
+  bio       String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  streams Stream[]
+
+  @@map("channels")
+}
+
+model Stream {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  thumbnail   String?
+  source      StreamSource
+  status      StreamStatus @default(SCHEDULED)
+
+  // INTERNAL配信専用
+  streamKey String? @unique // 配信中のみ発行、終了時にnullへ戻す
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  // YOUTUBE配信専用(videoIdを一意キーとして同期する)
+  externalId          String?   @unique
+  scheduledStartTime  DateTime?
+
+  viewerCount Int @default(0) // INTERNAL配信の直近視聴者数スナップショット(YouTubeはAPI由来のため参考値)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channelId Int
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId Int? // INTERNAL配信の作成者。YOUTUBE配信はnull
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, source])
+  @@map("streams")
+}
