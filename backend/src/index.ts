@@ -1,21 +1,20 @@
 /**
  * サーバーのエントリーポイント。
  *
- * 現時点では雛形(スキャフォールド)のみで、ルーティングや認証・mediasoup統合は
- * Phase 4(実装フェーズ)で追加する。ここでは以下のみを確認できれば良い:
- * - サーバーが起動すること
- * - ヘルスチェックエンドポイントが応答すること
+ * Phase 4進行中: 認証APIまで実装済み。
+ * チャンネル・配信・Socket.IO/mediasoupは後続フェーズで追加する。
  */
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import authRoutes from "./routes/auth";
 
 const app = express();
 
 app.use(
   cors({
     origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:3000",
-    credentials: true,
+    credentials: true, // Cookieを跨いで送受信するために必須
   })
 );
 app.use(cookieParser());
@@ -25,8 +24,9 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// TODO(Phase4): 以下を実装フェーズで追加する
-// - app.use("/auth", authRoutes)
+app.use("/auth", authRoutes);
+
+// TODO(Phase4以降): 以下を順次追加する
 // - app.use("/api/users", userRoutes)
 // - app.use("/api/channels", channelRoutes)
 // - app.use("/api/streams", streamRoutes)
