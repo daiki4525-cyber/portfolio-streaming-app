@@ -4,14 +4,21 @@
  * Phase 4進行中: 認証APIまで実装済み。
  * チャンネル・配信・Socket.IO/mediasoupは後続フェーズで追加する。
  */
+import { createServer } from "http";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth";
 import channelRoutes from "./routes/channels";
 import streamRoutes from "./routes/streams";
+import { initSocket } from "./socket";
+
 
 const app = express();
+
+/** フロントエンドのオリジン。ExpressのCORSとSocket.IOのCORSで共有する */
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
+
 
 app.use(
   cors({
@@ -42,6 +49,10 @@ app.use("/api/streams", streamRoutes);
 
 const PORT = process.env.PORT ?? 3001;
 
-app.listen(PORT, () => {
+// Socket.IOはExpressと同じHTTPサーバーに相乗りさせる
+const httpServer = createServer(app);
+initSocket(httpServer, FRONTEND_ORIGIN);
+
+httpServer.listen(PORT, () => {
   console.log(`[server] listening on port ${PORT}`);
 });
