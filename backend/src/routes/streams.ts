@@ -4,6 +4,7 @@ import prisma from "../lib/prisma";
 import { authMiddleware, type AuthRequest } from "../middlewares/auth";
 import { sendData, sendList, sendError } from "../lib/response";
 import { getActiveStreams, getStreamById, type StreamFilters } from "../services/streamService";
+import { emitStreamEnded } from "../socket";
 
 const router = Router();
 
@@ -164,6 +165,8 @@ router.post("/:id/end", authMiddleware, async (req: AuthRequest, res) => {
       where: { id: streamId },
       data: { status: "ENDED", endedAt: new Date(), streamKey: null },
     });
+
+    emitStreamEnded(streamId);
 
     return sendData(res, { message: "配信を終了しました" });
   } catch (err) {

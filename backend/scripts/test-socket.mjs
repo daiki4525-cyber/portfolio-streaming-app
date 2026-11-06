@@ -1,8 +1,8 @@
 import { io } from "socket.io-client";
 
 const BASE = "http://localhost:3001";
-const EMAIL = "test@example.com";
-const PASSWORD = "ここをtest-stream.mjsと同じ値にする";
+const EMAIL = "testuser";
+const PASSWORD = "password123";
 
 let failed = false;
 const check = (label, ok, detail) => {
@@ -44,7 +44,8 @@ const emitAck = (socket, event, data) =>
   new Promise((resolve) => socket.emit(event, data, resolve));
 
 // --- 準備: ログイン → 配信を作成して開始 ---
-const login = await api("POST", "/auth/login", null, { email: EMAIL, password: PASSWORD });
+//const login = await api("POST", "/auth/login", null, { email: EMAIL, password: PASSWORD });
+const login = await api("POST", "/auth/login", null, { identifier: EMAIL, password: PASSWORD });
 check("login 200", login.res.status === 200, login.json);
 const cookie = login.res.headers
   .getSetCookie()
